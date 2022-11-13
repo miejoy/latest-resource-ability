@@ -5,7 +5,7 @@ LatestResourceAbility 提供最新资源获取能力，可持续监听资源状�
 [![Swift](https://github.com/miejoy/latest-resource-ability/actions/workflows/test.yml/badge.svg)](https://github.com/miejoy/latest-resource-ability/actions/workflows/test.yml)
 [![codecov](https://codecov.io/gh/miejoy/latest-resource-ability/branch/main/graph/badge.svg)](https://codecov.io/gh/miejoy/latest-resource-ability)
 [![License](https://img.shields.io/badge/license-MIT-brightgreen.svg)](LICENSE)
-[![Swift](https://img.shields.io/badge/swift-5.4-brightgreen.svg)](https://swift.org)
+[![Swift](https://img.shields.io/badge/swift-5.7-brightgreen.svg)](https://swift.org)
 
 ## 依赖
 
