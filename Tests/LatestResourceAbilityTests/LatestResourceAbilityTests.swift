@@ -14,7 +14,7 @@ final class LatestResourceAbilityTests: XCTestCase {
     
     func resetAll() {
         let resourceBundle = Bundle.module
-        AbilityCenter.shared.registeAbilities([DefaultLatestResourceLoader(bundle: resourceBundle)])
+        AbilityCenter.shared.registeAbilities([.init(DefaultLatestResourceLoader(bundle: resourceBundle))])
     }
     
     func testLoadJsonConfigs() {
