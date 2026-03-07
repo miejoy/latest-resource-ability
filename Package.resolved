@@ -1,4 +1,5 @@
 {
+  "originHash" : "a49e8fed341df65009203a2464f0cc4c41d5bb804ebff89236a489996c656a10",
   "pins" : [
     {
       "identity" : "ability",
@@ -6,7 +7,7 @@
       "location" : "https://github.com/miejoy/ability.git",
       "state" : {
         "branch" : "main",
-        "revision" : "11d66349eb423b873b15aa60dd839c5cde4c20fa"
+        "revision" : "fb8a0973b04a9a07f69c5e439d07ebab4a52736a"
       }
     },
     {
@@ -15,9 +16,27 @@
       "location" : "https://github.com/miejoy/auto-config.git",
       "state" : {
         "branch" : "main",
-        "revision" : "552f3c55583a36960c2716be6247844a3b65a0dc"
+        "revision" : "7fe516047784f5c9ddb5dcc7705bbae393337cc3"
+      }
+    },
+    {
+      "identity" : "logger",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/miejoy/logger.git",
+      "state" : {
+        "branch" : "main",
+        "revision" : "867ac9dd51f5dd08b9cc519c3a167caa6f6ba3ec"
+      }
+    },
+    {
+      "identity" : "module-monitor",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/miejoy/module-monitor.git",
+      "state" : {
+        "branch" : "main",
+        "revision" : "0603c5d1e9fe4918dfd5c96649d81d12a30525f9"
       }
     }
   ],
-  "version" : 2
+  "version" : 3
 }

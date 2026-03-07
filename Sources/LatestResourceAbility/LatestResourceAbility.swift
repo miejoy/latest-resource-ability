@@ -10,7 +10,7 @@ import Combine
 
 public let latestResourceAbilityName = AbilityName(LatestResourceAbility.self)
 
-public protocol LatestResourceAbility: AbilityProtocol {
+public protocol LatestResourceAbility: AbilityProtocol & Sendable {
     func load<T:Decodable>(_ name: String, as type: T.Type) -> AnyPublisher<T?,Never>
 }
 
@@ -19,7 +19,8 @@ extension LatestResourceAbility {
 }
 
 extension Ability {
-    public static var latestResource : LatestResourceAbility = {
+    
+    public static let latestResource : LatestResourceAbility = {
         Ability.getAbility(with: DefaultLatestResourceLoader()) as! LatestResourceAbility
     }()
 }

@@ -8,13 +8,13 @@
 import Ability
 import Combine
 import Foundation
+import Logger
 
 public final class DefaultLatestResourceLoader: LatestResourceAbility {
-    
-    var resourceDir : String
-    var mapPublisher = [String:CurrentValueSubject<Data?, Never>]()
-    var bundle: Bundle
-    var jsonDecoder: JSONDecoder
+    let resourceDir : String
+    nonisolated(unsafe) var mapPublisher = [String:CurrentValueSubject<Data?, Never>]()
+    let bundle: Bundle
+    let jsonDecoder: JSONDecoder
     
     public init(
         bundle: Bundle = .main,
@@ -38,12 +38,16 @@ public final class DefaultLatestResourceLoader: LatestResourceAbility {
     
     /// 从对应 Bundle 中加载资源，这里返回数据是 Data，因为还有其他地方需要使用，T 传进去只是为了判断是否为数组
     func loadIn<T:Decodable>(_ bundle: Bundle, _ name: String, of type: T.Type) -> CurrentValueSubject<Data?, Never> {
-        if let publisher = mapPublisher[name] {
+        let publisher = DispatchQueue.syncOnAbilityQueue {
+            if let publisher = mapPublisher[name] {
+                return publisher
+            }
+            // 只读取项目文件
+            let publisher : CurrentValueSubject<Data?, Never> = .init(nil)
+            mapPublisher[name] = publisher
             return publisher
         }
-        // 只读取项目文件
-        let publisher : CurrentValueSubject<Data?, Never> = .init(nil)
-        mapPublisher[name] = publisher
+        
         guard var resourcePath = bundle.resourcePath else {
             return publisher
         }
@@ -73,7 +77,7 @@ public final class DefaultLatestResourceLoader: LatestResourceAbility {
             }
             return publisher
         } catch {
-            print(error)
+            LogError("Load latest resource '\(name)' failed: \(error)")
             return publisher
         }
     }
@@ -85,7 +89,7 @@ public final class DefaultLatestResourceLoader: LatestResourceAbility {
             }
             return nil
         } catch {
-            print(error)
+            LogError("Transform to model[\(T.self)] failed: \(error)")
             return nil
         }
     }
