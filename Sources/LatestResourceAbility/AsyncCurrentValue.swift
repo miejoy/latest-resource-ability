@@ -21,6 +21,8 @@ public final class AsyncCurrentValue<T: Sendable>: @unchecked Sendable {
     private var nextId: Int = 0
     private var continuations: [(id: Int, continuation: AsyncStream<T>.Continuation)] = []
     
+    public init() {}
+    
     /// 添加 continuation，若已有缓存值则立即 yield 一次，onTermination 时自动移除
     public func add(_ continuation: AsyncStream<T>.Continuation) {
         let id = nextId
