@@ -6,13 +6,13 @@
 //
 
 import Ability
-import Combine
 import Foundation
 import Logger
 
 public final class DefaultLatestResourceLoader: LatestResourceAbility {
+    
     let resourceDir : String
-    nonisolated(unsafe) var mapPublisher = [String:CurrentValueSubject<Data?, Never>]()
+    nonisolated(unsafe) var mapPublisher = [String: AsyncCurrentValue<Data?>]()
     let bundle: Bundle
     let jsonDecoder: JSONDecoder
     
@@ -26,60 +26,68 @@ public final class DefaultLatestResourceLoader: LatestResourceAbility {
         self.jsonDecoder = jsonDecoder
     }
     
-    /// 加载对应名称的最新资源
-    ///
-    /// - Parameter name: 对应最新资源的名称
-    /// - Parameter type: 资源对应解码类型
-    /// - Returns: 对应资源数据发布者
-    public func load<T: Decodable>(_ name: String, as type: T.Type) -> AnyPublisher<T?, Never> {
-        // 只读取项目文件
-        self.loadIn(bundle, name, of: T.self).map(transformToModel).eraseToAnyPublisher()
+    public func load<T: Decodable & Sendable>(_ name: String, as type: T.Type) -> AsyncStream<T?> {
+        loadData(name).map(transformToModel)
     }
     
-    /// 从对应 Bundle 中加载资源，这里返回数据是 Data，因为还有其他地方需要使用，T 传进去只是为了判断是否为数组
-    func loadIn<T:Decodable>(_ bundle: Bundle, _ name: String, of type: T.Type) -> CurrentValueSubject<Data?, Never> {
-        let publisher = DispatchQueue.syncOnAbilityQueue {
-            if let publisher = mapPublisher[name] {
-                return publisher
+    /// 加载原始 Data 流，内部通过 AsyncCurrentValue 管理
+    func loadData(_ name: String) -> AsyncStream<Data?> {
+        AsyncStream<Data?> { continuation in
+            let isNew = DispatchQueue.syncOnAbilityQueue { () -> Bool in
+                if let existing = mapPublisher[name] {
+                    existing.add(continuation)
+                    return false
+                }
+                let subject = AsyncCurrentValue<Data?>()
+                subject.add(continuation)
+                mapPublisher[name] = subject
+                return true
             }
-            // 只读取项目文件
-            let publisher : CurrentValueSubject<Data?, Never> = .init(nil)
-            mapPublisher[name] = publisher
-            return publisher
+            // 首次创建时加载文件
+            if isNew {
+                let data = loadFromBundle(name: name)
+                DispatchQueue.syncOnAbilityQueue { mapPublisher[name]?.send(data) }
+            }
         }
-        
+    }
+    
+    /// 更新指定名称的数据并通知所有订阅者
+    public func update(_ name: String, with data: Data?) {
+        DispatchQueue.syncOnAbilityQueue {
+            mapPublisher[name]?.send(data)
+        }
+    }
+    
+    /// 从 Bundle 中同步读取文件数据
+    private func loadFromBundle(name: String) -> Data? {
         guard var resourcePath = bundle.resourcePath else {
-            return publisher
+            return nil
         }
         let fileManager = FileManager.default
-        do {
-            if !self.resourceDir.isEmpty {
-                resourcePath += "/\(self.resourceDir)/"
-            } else {
-                resourcePath += "/"
-            }
-            // 优先查找 json
-            let filePath = resourcePath + name + ".json"
-            if fileManager.fileExists(atPath: filePath) {
-                let data = fileManager.contents(atPath: filePath)
-                publisher.send(data)
-            } else {
-                // 没有 json 再查找 plist
-                let plistFilePath = resourcePath + name + ".plist"
-                if fileManager.fileExists(atPath: plistFilePath) {
-                    var format = PropertyListSerialization.PropertyListFormat.xml
-                    if let xmlData = fileManager.contents(atPath: plistFilePath) {
-                        let object = try PropertyListSerialization.propertyList(from: xmlData, options: .mutableContainersAndLeaves, format: &format)
-                        let data = try JSONSerialization.data(withJSONObject: object, options: .fragmentsAllowed)
-                        publisher.send(data)
-                    }
-                }
-            }
-            return publisher
-        } catch {
-            LogError("Load latest resource '\(name)' failed: \(error)")
-            return publisher
+        if !self.resourceDir.isEmpty {
+            resourcePath += "/\(self.resourceDir)/"
+        } else {
+            resourcePath += "/"
         }
+        // 优先查找 json
+        let filePath = resourcePath + name + ".json"
+        if fileManager.fileExists(atPath: filePath) {
+            return fileManager.contents(atPath: filePath)
+        }
+        // 没有 json 再查找 plist
+        let plistFilePath = resourcePath + name + ".plist"
+        if fileManager.fileExists(atPath: plistFilePath) {
+            do {
+                var format = PropertyListSerialization.PropertyListFormat.xml
+                if let xmlData = fileManager.contents(atPath: plistFilePath) {
+                    let object = try PropertyListSerialization.propertyList(from: xmlData, options: .mutableContainersAndLeaves, format: &format)
+                    return try JSONSerialization.data(withJSONObject: object, options: .fragmentsAllowed)
+                }
+            } catch {
+                LogError("Load latest resource '\(name)' failed: \(error)")
+            }
+        }
+        return nil
     }
     
     public func transformToModel<T:Decodable>(_ data: Data?) -> T? {

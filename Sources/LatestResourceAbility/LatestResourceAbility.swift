@@ -6,12 +6,11 @@
 //
 
 import Ability
-import Combine
 
 public let latestResourceAbilityName = AbilityName(LatestResourceAbility.self)
 
 public protocol LatestResourceAbility: AbilityProtocol & Sendable {
-    func load<T:Decodable>(_ name: String, as type: T.Type) -> AnyPublisher<T?,Never>
+    func load<T: Decodable & Sendable>(_ name: String, as type: T.Type) -> AsyncStream<T?>
 }
 
 extension LatestResourceAbility {

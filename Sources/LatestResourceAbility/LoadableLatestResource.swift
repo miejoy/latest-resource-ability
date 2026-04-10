@@ -6,23 +6,22 @@
 //
 
 import Ability
-import Combine
 
 /// 可加载最新资源协议
 public protocol LoadableLatestResource {
-    associatedtype Response: Decodable
+    associatedtype Response: Decodable & Sendable
     var name : String { get }
 }
 
 extension LoadableLatestResource {
     // 定义资源打开方法
-    public func open() -> AnyPublisher<Response?, Never> {
+    public func open() -> AsyncStream<Response?> {
         Ability.latestResource.load(name, as: Response.self)
     }
 }
 
 /// 任意最新资源
-public struct AnyLatestResource<Response:Decodable> : LoadableLatestResource {
+public struct AnyLatestResource<Response: Decodable & Sendable>: LoadableLatestResource {
     public var name : String
     
     public init(name: String) {

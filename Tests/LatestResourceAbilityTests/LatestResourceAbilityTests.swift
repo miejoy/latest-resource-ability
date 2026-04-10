@@ -5,7 +5,6 @@
 //  Created by 黄磊 on 2022/11/13.
 //
 
-import Combine
 @testable import Ability
 import XCTest
 @testable import LatestResourceAbility
@@ -17,144 +16,100 @@ final class LatestResourceAbilityTests: XCTestCase {
         AbilityCenter.shared.registerAbilities([.init(DefaultLatestResourceLoader(bundle: resourceBundle))])
     }
     
-    func testLoadJsonConfigs() {
+    func testLoadJsonConfigs() async {
         resetAll()
-        var getValueCall = 0
-        let cancellable = AnyLatestResource<ConfigInfo>(name: "json_configs").open().sink { configInfo in
-            
-            XCTAssertNotNil(configInfo)
-            XCTAssertEqual(configInfo?.string_key, "json")
-            XCTAssertEqual(configInfo?.int_key, 1)
-            XCTAssertEqual(configInfo?.double_key, 1.1)
-            XCTAssertEqual(configInfo?.bool_key, true)
-            XCTAssertEqual(configInfo?.map_key, ["second_string_key":"second_test"])
-            XCTAssertEqual(configInfo?.array_key, ["test1", "test2"])
-            
-            getValueCall += 1
-        }
+        var iterator = AnyLatestResource<ConfigInfo>(name: "json_configs").open().makeAsyncIterator()
+        let configInfo = await iterator.next()!
         
-        XCTAssertEqual(getValueCall, 1)
-        cancellable.cancel()
+        XCTAssertNotNil(configInfo)
+        XCTAssertEqual(configInfo?.string_key, "json")
+        XCTAssertEqual(configInfo?.int_key, 1)
+        XCTAssertEqual(configInfo?.double_key, 1.1)
+        XCTAssertEqual(configInfo?.bool_key, true)
+        XCTAssertEqual(configInfo?.map_key, ["second_string_key":"second_test"])
+        XCTAssertEqual(configInfo?.array_key, ["test1", "test2"])
     }
     
-    func testLoadPlistConfigs() {
+    func testLoadPlistConfigs() async {
         resetAll()
-        var getValueCall = 0
-        let cancellable = AnyLatestResource<ConfigInfo>(name: "plist_configs").open().sink { configInfo in
-            
-            XCTAssertNotNil(configInfo)
-            XCTAssertEqual(configInfo?.string_key, "plist")
-            XCTAssertEqual(configInfo?.int_key, 1)
-            XCTAssertEqual(configInfo?.double_key, 1.1)
-            XCTAssertEqual(configInfo?.bool_key, true)
-            XCTAssertEqual(configInfo?.map_key, ["second_string_key":"second_test"])
-            XCTAssertEqual(configInfo?.array_key, ["test1", "test2"])
-            
-            getValueCall += 1
-        }
+        var iterator = AnyLatestResource<ConfigInfo>(name: "plist_configs").open().makeAsyncIterator()
+        let configInfo = await iterator.next()!
         
-        XCTAssertEqual(getValueCall, 1)
-        cancellable.cancel()
+        XCTAssertNotNil(configInfo)
+        XCTAssertEqual(configInfo?.string_key, "plist")
+        XCTAssertEqual(configInfo?.int_key, 1)
+        XCTAssertEqual(configInfo?.double_key, 1.1)
+        XCTAssertEqual(configInfo?.bool_key, true)
+        XCTAssertEqual(configInfo?.map_key, ["second_string_key":"second_test"])
+        XCTAssertEqual(configInfo?.array_key, ["test1", "test2"])
     }
     
-    func testLoadConfigsUpdate() {
+    func testLoadConfigsUpdate() async {
         resetAll()
-        var getValueCall = 0
-        let cancellable = AnyLatestResource<ConfigInfo>(name: "json_configs").open().sink { configInfo in
-            
-            if getValueCall == 0 {
-                XCTAssertNotNil(configInfo)
-                XCTAssertEqual(configInfo?.string_key, "json")
-                XCTAssertEqual(configInfo?.int_key, 1)
-                XCTAssertEqual(configInfo?.double_key, 1.1)
-                XCTAssertEqual(configInfo?.bool_key, true)
-                XCTAssertEqual(configInfo?.map_key, ["second_string_key":"second_test"])
-                XCTAssertEqual(configInfo?.array_key, ["test1", "test2"])
-            } else if getValueCall == 1 {
-                XCTAssertNil(configInfo)
-            }
-            
-            getValueCall += 1
-        }
+        var iterator = AnyLatestResource<ConfigInfo>(name: "json_configs").open().makeAsyncIterator()
         
-        XCTAssertEqual(getValueCall, 1)
+        // 收到初始值
+        let first = await iterator.next()!
+        XCTAssertNotNil(first)
+        XCTAssertEqual(first?.string_key, "json")
+        XCTAssertEqual(first?.int_key, 1)
+        XCTAssertEqual(first?.double_key, 1.1)
+        XCTAssertEqual(first?.bool_key, true)
+        XCTAssertEqual(first?.map_key, ["second_string_key":"second_test"])
+        XCTAssertEqual(first?.array_key, ["test1", "test2"])
         
         let defaultLoader = AbilityCenter.shared.storage[latestResourceAbilityName.identifier] as! DefaultLatestResourceLoader
         
-        defaultLoader.mapPublisher["json_configs"]?.send(nil)
+        // 触发更新
+        defaultLoader.update("json_configs", with: nil)
         
-        XCTAssertEqual(getValueCall, 2)
-        cancellable.cancel()
+        let second = await iterator.next()!
+        XCTAssertNil(second)
+        
         defaultLoader.mapPublisher.removeValue(forKey: "json_configs")
     }
     
-    func testLoadNoData() {
+    func testLoadNoData() async {
         resetAll()
-        var getValueCall = 0
-        let cancellable = AnyLatestResource<ConfigInfo>(name: "json_no_data").open().sink { configInfo in
-            XCTAssertNil(configInfo)
-            getValueCall += 1
-        }
-        
-        XCTAssertEqual(getValueCall, 1)
-        cancellable.cancel()
+        var iterator = AnyLatestResource<ConfigInfo>(name: "json_no_data").open().makeAsyncIterator()
+        let configInfo = await iterator.next()!
+        XCTAssertNil(configInfo)
     }
     
-    func testLoadWrongData() {
+    func testLoadWrongData() async {
         resetAll()
-        var getValueCall = 0
-        let cancellable = AnyLatestResource<ConfigInfo>(name: "plist_wrong_data").open().sink { configInfo in
-            XCTAssertNil(configInfo)
-            getValueCall += 1
-        }
-        
-        XCTAssertEqual(getValueCall, 1)
-        cancellable.cancel()
+        var iterator = AnyLatestResource<ConfigInfo>(name: "plist_wrong_data").open().makeAsyncIterator()
+        let configInfo = await iterator.next()!
+        XCTAssertNil(configInfo)
     }
     
-    func testLoadWrongFormat() {
+    func testLoadWrongFormat() async {
         resetAll()
-        var getValueCall = 0
-        let cancellable = AnyLatestResource<ConfigInfo>(name: "json_wrong_format").open().sink { configInfo in
-            XCTAssertNil(configInfo)
-            getValueCall += 1
-        }
-        
-        XCTAssertEqual(getValueCall, 1)
-        cancellable.cancel()
+        var iterator = AnyLatestResource<ConfigInfo>(name: "json_wrong_format").open().makeAsyncIterator()
+        let configInfo = await iterator.next()!
+        XCTAssertNil(configInfo)
     }
     
-    func testLoadWrongStruct() {
+    func testLoadWrongStruct() async {
         resetAll()
-        var getValueCall = 0
-        let cancellable = AnyLatestResource<ConfigInfo>(name: "json_wrong_struct").open().sink { configInfo in
-            XCTAssertNil(configInfo)
-            getValueCall += 1
-        }
-        
-        XCTAssertEqual(getValueCall, 1)
-        cancellable.cancel()
+        var iterator = AnyLatestResource<ConfigInfo>(name: "json_wrong_struct").open().makeAsyncIterator()
+        let configInfo = await iterator.next()!
+        XCTAssertNil(configInfo)
     }
     
-    func testLoadWithAbility() {
+    func testLoadWithAbility() async {
         resetAll()
         
-        var getValueCall = 0
-        let cancellable = Ability.latestResource.load("json_configs", as: ConfigInfo.self).sink { configInfo in
-            XCTAssertNotNil(configInfo)
-            XCTAssertEqual(configInfo?.string_key, "json")
-            XCTAssertEqual(configInfo?.int_key, 1)
-            XCTAssertEqual(configInfo?.double_key, 1.1)
-            XCTAssertEqual(configInfo?.bool_key, true)
-            XCTAssertEqual(configInfo?.map_key, ["second_string_key":"second_test"])
-            XCTAssertEqual(configInfo?.array_key, ["test1", "test2"])
-            
-            getValueCall += 1
-        }
+        var iterator = Ability.latestResource.load("json_configs", as: ConfigInfo.self).makeAsyncIterator()
+        let configInfo = await iterator.next()!
         
-        XCTAssertEqual(getValueCall, 1)
-        
-        cancellable.cancel()
+        XCTAssertNotNil(configInfo)
+        XCTAssertEqual(configInfo?.string_key, "json")
+        XCTAssertEqual(configInfo?.int_key, 1)
+        XCTAssertEqual(configInfo?.double_key, 1.1)
+        XCTAssertEqual(configInfo?.bool_key, true)
+        XCTAssertEqual(configInfo?.map_key, ["second_string_key":"second_test"])
+        XCTAssertEqual(configInfo?.array_key, ["test1", "test2"])
     }
     
     // 这个只能单独测试
@@ -166,7 +121,47 @@ final class LatestResourceAbilityTests: XCTestCase {
     }
 }
 
-struct ConfigInfo: Decodable {
+final class AsyncStreamMapTests: XCTestCase {
+
+    func testMapSync() async {
+        let stream = AsyncStream<Int> { continuation in
+            continuation.yield(1)
+            continuation.yield(2)
+            continuation.yield(3)
+            continuation.finish()
+        }
+        var iterator = stream.map { $0 * 2 }.makeAsyncIterator()
+        let results = await [iterator.next(), iterator.next(), iterator.next(), iterator.next()]
+        XCTAssertEqual(results, [2, 4, 6, nil])
+    }
+
+    func testMapAsync() async {
+        let stream = AsyncStream<Int> { continuation in
+            continuation.yield(10)
+            continuation.yield(20)
+            continuation.finish()
+        }
+        var iterator = stream.map { value async -> Int in
+            // 模拟异步操作
+            try? await Task.sleep(nanoseconds: 1_000)
+            return value + 1
+        }.makeAsyncIterator()
+        let results = await [iterator.next(), iterator.next(), iterator.next()]
+        XCTAssertEqual(results, [11, 21, nil])
+    }
+
+    func testMapTransformsType() async {
+        let stream = AsyncStream<Int> { continuation in
+            continuation.yield(42)
+            continuation.finish()
+        }
+        var iterator = stream.map { "\($0)" }.makeAsyncIterator()
+        let value = await iterator.next()
+        XCTAssertEqual(value, "42")
+    }
+}
+
+struct ConfigInfo: Decodable, Sendable {
     let string_key: String
     let int_key: Int
     let double_key: Double
