@@ -39,6 +39,6 @@ public extension AsyncStream where Element: Sendable {
     }
 
     func replaceNil<T>(with value: T) -> AsyncStream<T> where Element == T?, T: Sendable {
-        map { ($0 as T?) ?? value }
+        map { $0 ?? value }
     }
 }
