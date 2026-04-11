@@ -6,6 +6,13 @@
 //
 
 public extension AsyncStream where Element: Sendable {
+    func first() async -> Element? {
+        for await element in self {
+            return element
+        }
+        return nil
+    }
+    
     func map<T: Sendable>(_ transform: @Sendable @escaping (Element) async -> T) -> AsyncStream<T> {
         let stream = self
         return AsyncStream<T> { continuation in
