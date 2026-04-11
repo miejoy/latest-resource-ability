@@ -23,6 +23,12 @@ public final class AsyncCurrentValue<T: Sendable>: @unchecked Sendable {
     
     public init() {}
     
+    /// 当前是否已有值
+    public var hasValue: Bool {
+        if case .hasValue = state { return true }
+        return false
+    }
+    
     /// 添加 continuation，若已有缓存值则立即 yield 一次，onTermination 时自动移除
     public func add(_ continuation: AsyncStream<T>.Continuation) {
         let id = nextId
