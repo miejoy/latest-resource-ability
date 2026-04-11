@@ -12,7 +12,7 @@ public extension AsyncStream where Element: Sendable {
         }
         return nil
     }
-    
+
     func map<T: Sendable>(_ transform: @Sendable @escaping (Element) async -> T) -> AsyncStream<T> {
         let stream = self
         return AsyncStream<T> { continuation in
@@ -25,7 +25,7 @@ public extension AsyncStream where Element: Sendable {
             }
         }
     }
-    
+
     func map<T: Sendable>(_ transform: @Sendable @escaping (Element) -> T) -> AsyncStream<T> {
         let stream = self
         return AsyncStream<T> { continuation in
@@ -36,5 +36,9 @@ public extension AsyncStream where Element: Sendable {
                 continuation.finish()
             }
         }
+    }
+
+    func replaceNil<T>(with value: T) -> AsyncStream<T> where Element == T?, T: Sendable {
+        map { ($0 as T?) ?? value }
     }
 }
